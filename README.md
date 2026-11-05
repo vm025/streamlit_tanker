@@ -21,6 +21,8 @@ background: radial-gradient(
 );
 
 
--------- APp info -----------------------------------------------
+-------- App info -----------------------------------------------
 a) dashboard:  dashboard-wtanker.netlify.app
-b) tanker data entry:  
+b) tanker data entry:  https://tanker-water-dom.streamlit.app/ 
+
+Note: for the tanker, streamlit has been chosen, for better protection of the API keys, etc.
