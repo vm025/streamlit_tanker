@@ -19,7 +19,16 @@ import streamlit as st
 # ----------------------------------------------------------------------------
 # CONFIG
 # ----------------------------------------------------------------------------
-TESTING = True  # <-- set to False on the cloud deployment
+def _read_testing_flag() -> bool:
+    """TESTING comes from secrets.toml (bool or string). Missing -> True (local Excel, the default.)."""
+    try:
+        val = st.secrets.get("TESTING", True)
+    except Exception:  # no secrets file found
+        return True
+    return val if isinstance(val, bool) else str(val).strip().lower() == "true"
+
+
+TESTING = _read_testing_flag()  # set TESTING = false in secrets.toml on the cloud
 
 BLOCKS = ["A-block", "B-block", "C-block", "D-block", "E-block", "F-block"]
 HEADERS = ["serial_no.", "date_str", "time_str", "block", "quantity", "date_obj", "time_obj"]
