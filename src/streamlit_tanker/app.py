@@ -6,7 +6,7 @@ Streamlit app to log water tanker deliveries per block.
 * TESTING = True  -> reads/writes  <project_root>/data/tanker.xlsx  (local machine)
 * TESTING = False -> reads/writes  Google Sheet "tanker" (cloud), credentials from secrets.toml
 
-Run locally :  streamlit run app.py
+Run locally :  uv run streamlit run src/streamlit_tanker/app.py   (from the project root)
 """
 
 import hmac
@@ -28,7 +28,9 @@ FORMULA_LAST_ROW = 100  # formulas in columns F & G are pre-filled up to this ro
 MAX_ATTEMPTS = 5
 
 IST = timezone(timedelta(hours=5, minutes=30))  # IST has no DST, fixed offset is safe
-LOCAL_FILE = Path(__file__).parent / "data" / "tanker.xlsx"
+# app.py lives in <root>/src/streamlit_tanker/, so the project root is 2 levels up
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+LOCAL_FILE = PROJECT_ROOT / "data" / "tanker.xlsx"
 GSHEET_NAME = "tanker"
 
 
@@ -199,19 +201,29 @@ st.markdown(
     }
     label, .stRadio label p { color: #3E5A63 !important; font-weight: 500; }
 
-    /* block radios rendered as dark-teal buttons */
-    div[role="radiogroup"] { gap: .6rem; }
-    div[role="radiogroup"] > label {
-        background: #0F5C61; border: 2px solid #0F5C61; border-radius: 10px;
-        padding: .55rem 1.1rem; cursor: pointer; transition: all .15s ease;
+    /* block selector card */
+    .st-key-blocks {
+        background: #FFFFFF; border: 1px solid #DCE6E9; border-radius: 16px;
+        padding: 1.2rem 1.2rem .8rem 1.2rem; box-shadow: 0 4px 14px rgba(47,93,107,.07);
+        margin-bottom: 1rem;
+    }
+    .block-label { color: #3E5A63; font-weight: 500; font-size: .95rem; margin-bottom: .4rem; }
+    /* keep the 3 buttons per row even on phones */
+    .st-key-blocks [data-testid="stHorizontalBlock"] { flex-direction: row !important; flex-wrap: wrap; gap: .6rem; }
+    .st-key-blocks [data-testid="stColumn"] { min-width: calc(33% - .6rem) !important; flex: 1 1 calc(33% - .6rem) !important; }
+
+    /* block buttons: dark teal */
+    .st-key-blocks .stButton > button {
+        background: #0F5C61; border: 2px solid #0F5C61; color: #fff;
+        border-radius: 10px; padding: .6rem .4rem; font-weight: 600;
         box-shadow: 0 2px 6px rgba(15,92,97,.25);
     }
-    div[role="radiogroup"] > label > div:first-child { display: none; }  /* hide radio dot */
-    div[role="radiogroup"] > label p { color: #FFFFFF !important; font-weight: 600; margin: 0; }
-    div[role="radiogroup"] > label:hover { background: #0B4A4F; border-color: #0B4A4F; }
-    div[role="radiogroup"] > label:has(input:checked) {
-        background: #07363A; border-color: #F2C94C;
-        box-shadow: 0 0 0 3px rgba(242,201,76,.55);
+    .st-key-blocks .stButton > button p { color: #fff !important; font-weight: 600; }
+    .st-key-blocks .stButton > button:hover { background: #0B4A4F; border-color: #0B4A4F; color: #fff; }
+    /* selected block */
+    .st-key-blocks .stButton > button[kind="primary"],
+    .st-key-blocks .stButton > [data-testid="stBaseButton-primary"] {
+        background: #07363A; border-color: #F2C94C; box-shadow: 0 0 0 3px rgba(242,201,76,.55);
     }
 
     .stTextInput input { border-radius: 10px; border: 1px solid #CBDADE; background: #FBFDFD; }
@@ -283,13 +295,35 @@ if ss.flash:
     ss.flash = None
 
 fid = ss.form_id
+ss.setdefault("block", None)
+
+
+def pick_block(name: str):
+    ss.block = name
+
+
+with st.container(key="blocks"):
+    st.markdown('<div class="block-label">Block</div>', unsafe_allow_html=True)
+    for row in (BLOCKS[:3], BLOCKS[3:]):
+        cols = st.columns(3)
+        for col, name in zip(cols, row):
+            col.button(
+                name,
+                key=f"blk_{name}",
+                on_click=pick_block,
+                args=(name,),
+                type="primary" if ss.block == name else "secondary",
+                use_container_width=True,
+            )
+    st.caption(f"Selected: **{ss.block}**" if ss.block else "Tap a block to select it.")
+
 with st.form("entry_form"):
-    block = st.radio("Block", BLOCKS, index=None, horizontal=True, key=f"block_{fid}")
     qty_txt = st.text_input("Quantity", value="1", max_chars=6, key=f"qty_{fid}")
     submitted = st.form_submit_button("Submit")
 
 if submitted:
     qty_txt = qty_txt.strip()
+    block = ss.block
     if block is None:
         st.error("Please select a block.")
     elif not qty_txt:
@@ -304,7 +338,8 @@ if submitted:
                 f"✅ Saved #{serial}: {block} × {int(qty_txt)} "
                 f"on {now.strftime('%d-%m-%Y')} at {now.strftime('%H:%M')} IST"
             )
-            ss.form_id += 1  # resets the form fields
+            ss.form_id += 1  # resets the quantity field
+            ss.block = None  # clears the block selection
             st.rerun()
         except Exception as e:
             st.error(f"Could not save the entry: {e}")
