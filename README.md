@@ -19,3 +19,8 @@ background: radial-gradient(
     #e9c0e3 70%,
     #f0dff0 100%
 );
+
+
+-------- APp info -----------------------------------------------
+a) dashboard:  dashboard-wtanker.netlify.app
+b) tanker data entry:  

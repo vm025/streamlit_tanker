@@ -20,7 +20,7 @@ import streamlit as st
 # CONFIG
 # ----------------------------------------------------------------------------
 def _read_testing_flag() -> bool:
-    """TESTING comes from secrets.toml (bool or string). Missing -> True (local Excel, the default.)."""
+    """TESTING comes from secrets.toml (bool or string). Missing -> True (local Excel)."""
     try:
         val = st.secrets.get("TESTING", True)
     except Exception:  # no secrets file found
@@ -192,10 +192,20 @@ st.set_page_config(page_title="Water Tanker Tracker", page_icon="💧", layout="
 st.markdown(
     """
     <style>
-    .stApp { background: #FFF8B5; }
+    body, .stApp {
+        background: radial-gradient(
+        circle at left center,
+        #d01a8b 0%,
+        #e64caf 20%,
+        #eb8fd0 40%,
+        #e9c0e3 70%,
+        #f0dff0 100%
+    );
+        background-attachment: fixed;
+    }
     .block-container { max-width: 520px; padding-top: 2rem; padding-bottom: 2rem; }
     header[data-testid="stHeader"] { background: transparent; }
-    [data-testid="stAppViewContainer"], [data-testid="stMain"] { background: #FFF8B5; }
+    [data-testid="stAppViewContainer"], [data-testid="stMain"] { background: transparent; }
     #MainMenu, footer { visibility: hidden; }
 
     .app-title {
